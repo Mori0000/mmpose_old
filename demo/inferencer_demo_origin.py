@@ -2,7 +2,6 @@
 from argparse import ArgumentParser
 from typing import Dict
 import sys
-import os
 
 sys.path.append('/home/moriki/PoseEstimation/mmpose/')
 
@@ -213,19 +212,13 @@ def display_model_aliases(model_aliases: Dict[str, str]) -> None:
 
 def main():
     init_args, call_args, display_alias = parse_args()
-    dataset_path = '/home/moriki/PoseEstimation/mmpose/data/crowdpose/images'
-    
-    for i in range(100):
-        image_id = 100000 + i
-        image_path = os.path.join(dataset_path, f'{image_id}.jpg')
-        call_args['inputs'] = image_path
-        if display_alias:
-            model_alises = get_model_aliases(init_args['scope'])
-            display_model_aliases(model_alises)
-        else:
-            inferencer = MMPoseInferencer(**init_args)
-            for _ in inferencer(**call_args):
-                pass
+    if display_alias:
+        model_alises = get_model_aliases(init_args['scope'])
+        display_model_aliases(model_alises)
+    else:
+        inferencer = MMPoseInferencer(**init_args)
+        for _ in inferencer(**call_args):
+            pass
 
 
 if __name__ == '__main__':
