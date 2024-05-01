@@ -201,8 +201,9 @@ def parse_args():
 
 
 def display_model_aliases(model_aliases: Dict[str, str]) -> None:
-    """Display the available model aliases and their corresponding model
-    names."""
+    """
+    Display the available model aliases and their corresponding model names.
+    """
     aliases = list(model_aliases.keys())
     max_alias_length = max(map(len, aliases))
     print(f'{"ALIAS".ljust(max_alias_length+2)}MODEL_NAME')

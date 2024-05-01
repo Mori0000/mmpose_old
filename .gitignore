@@ -3,10 +3,27 @@ __pycache__/
 *.py[cod]
 *$py.class
 **/*.pyc
+
+# moriki custom
 *.png
 *.jpg
 *.jpeg
 *.zip
+*.json
+*.yaml
+*.yml
+*.log
+*.log.json
+*.pth
+*.pkl
+*.pkl.json
+*.npy
+*.npy.json
+*.npz
+*.npz.json
+*.csv
+*.csv.json
+
 
 # C extensions
 *.so

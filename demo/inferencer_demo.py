@@ -178,7 +178,7 @@ def parse_args():
     parser.add_argument(
         '--pred-out-dir',
         type=str,
-        default='',
+        default='/home/moriki/PoseEstimation/mmpose/outputs/inferencer-demo',      #! 追加したところ
         help='Directory for saving inference results.')
     parser.add_argument(
         '--show-alias',
@@ -215,7 +215,7 @@ def main():
     init_args, call_args, display_alias = parse_args()
     dataset_path = '/home/moriki/PoseEstimation/mmpose/data/crowdpose/images'
     
-    for i in range(100):
+    for i in range(10):
         image_id = 100000 + i
         image_path = os.path.join(dataset_path, f'{image_id}.jpg')
         call_args['inputs'] = image_path
