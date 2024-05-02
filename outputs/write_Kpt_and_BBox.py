@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 
 # 確認したい画像の番号を選択
-img_num = 100001
+img_num = 100007
 img_path = '/home/moriki/PoseEstimation/mmpose/data/pose/CrowdPose/images-origin'
 data_path = '/home/moriki/PoseEstimation/mmpose/outputs/inferencer-demo'
 

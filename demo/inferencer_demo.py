@@ -11,12 +11,14 @@ from mmpose.apis.inferencers import MMPoseInferencer, get_model_aliases
 filter_args = dict(bbox_thr=0.3, nms_thr=0.3, pose_based_nms=False)
 POSE2D_SPECIFIC_ARGS = dict(
     yoloxpose=dict(bbox_thr=0.01, nms_thr=0.65, pose_based_nms=True),
+    
     rtmo=dict(bbox_thr=0.1, nms_thr=0.65, pose_based_nms=True),
 )
 
 
 def parse_args():
     parser = ArgumentParser()
+
     parser.add_argument(
         'inputs',
         type=str,
@@ -37,6 +39,11 @@ def parse_args():
         help='Path to the custom checkpoint file of the selected pose model. '
         'If it is not specified and "pose2d" is a model name of metafile, '
         'the weights will be loaded from metafile.')
+    parser.add_argument(
+        '--output_heatmaps',                #! 追加したところ
+        action='store_true',
+        default=True,
+        help='Flag to visualize predicted heatmaps. If enabled, the model will output heatmaps.')
     parser.add_argument(
         '--pose3d',
         type=str,
@@ -126,6 +133,7 @@ def parse_args():
         '--tracking-thr', type=float, default=0.3, help='Tracking threshold')
     parser.add_argument(
         '--use-oks-tracking',
+        default=False,
         action='store_true',
         help='Whether to use OKS as similarity in tracking')
     parser.add_argument(
@@ -162,26 +170,28 @@ def parse_args():
         help='Link thickness for visualization.')
     parser.add_argument(
         '--skeleton-style',
-        default='mmpose',
+        default='openpose',
         type=str,
         choices=['mmpose', 'openpose'],
         help='Skeleton style selection')
     parser.add_argument(
         '--black-background',
+        default=False,
         action='store_true',
         help='Plot predictions on a black image')
     parser.add_argument(
         '--vis-out-dir',
+        default='/home/moriki/PoseEstimation/mmpose/outputs/inferencer-vis',
         type=str,
-        default='',
         help='Directory for saving visualized results.')
     parser.add_argument(
         '--pred-out-dir',
         type=str,
-        default='/home/moriki/PoseEstimation/mmpose/outputs/inferencer-demo',      #! 追加したところ
+        default='/home/moriki/PoseEstimation/mmpose/outputs/heatmap',      #! 追加したところ
         help='Directory for saving inference results.')
     parser.add_argument(
         '--show-alias',
+        default=False,
         action='store_true',
         help='Display all the available model aliases.')
 
@@ -215,18 +225,23 @@ def main():
     init_args, call_args, display_alias = parse_args()
     dataset_path = '/home/moriki/PoseEstimation/mmpose/data/crowdpose/images'
     
-    for i in range(10):
+    for i in [3,4]:
         image_id = 100000 + i
         image_path = os.path.join(dataset_path, f'{image_id}.jpg')
+        
+        # 画像ファイルが存在するかどうかをチェック
+        if not os.path.exists(image_path):
+            continue  # ファイルが存在しなければ次のイテレーションへスキップ
+        
         call_args['inputs'] = image_path
+        
         if display_alias:
-            model_alises = get_model_aliases(init_args['scope'])
-            display_model_aliases(model_alises)
+            model_aliases = get_model_aliases(init_args['scope'])
+            display_model_aliases(model_aliases)
         else:
             inferencer = MMPoseInferencer(**init_args)
             for _ in inferencer(**call_args):
                 pass
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
