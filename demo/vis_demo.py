@@ -15,16 +15,16 @@ POSE2D_SPECIFIC_ARGS = dict(
 )
 
 
-def parse_args():                                    # ここで引数をパースしている
-    parser = ArgumentParser()                       # ArgumentParser()でパーサーを作成
-    parser.add_argument(                            # 引数を追加
-        'inputs',                                       # 引数名を追加
+def parse_args():
+    parser = ArgumentParser()
+    parser.add_argument(
+        'inputs',
         type=str,
         nargs='?',
         help='Input image/video path or folder path.')
     # init args
-    parser.add_argument(                # 引数を追加
-        '--pose2d',                     # 引数名を追加
+    parser.add_argument(
+        '--pose2d',
         type=str,
         default=None,
         help='Pretrained 2D pose estimation algorithm. It\'s the path to the '
@@ -36,11 +36,11 @@ def parse_args():                                    # ここで引数をパー�
         help='Path to the custom checkpoint file of the selected pose model. '
         'If it is not specified and "pose2d" is a model name of metafile, '
         'the weights will be loaded from metafile.')
-    # parser.add_argument(
-    #     '--output_heatmaps',                #! 追加したところ
-    #     action='store_true',
-    #     default=False,
-    #     help='Flag to visualize predicted heatmaps. If enabled, the model will output heatmaps.')  
+    parser.add_argument(
+        '--output_heatmaps',                #! 追加したところ
+        action='store_true',
+        default=False,
+        help='Flag to visualize predicted heatmaps. If enabled, the model will output heatmaps.')
     parser.add_argument(
         '--pose3d',
         type=str,
@@ -89,25 +89,25 @@ def parse_args():                                    # ここで引数をパー�
     # The default arguments for prediction filtering differ for top-down
     # and bottom-up models. We assign the default arguments according to the
     # selected pose2d model
-    args, _ = parser.parse_known_args()                             # 引数をパース
-    for model in POSE2D_SPECIFIC_ARGS:                              # モデルを取得
-        if model in args.pose2d:                                    # モデルがargs.pose2dにある場合
-            filter_args.update(POSE2D_SPECIFIC_ARGS[model])         # filter_argsにPOSE2D_SPECIFIC_ARGS[model]を追加
+    args, _ = parser.parse_known_args()
+    for model in POSE2D_SPECIFIC_ARGS:
+        if model in args.pose2d:
+            filter_args.update(POSE2D_SPECIFIC_ARGS[model])
             break
 
     # call args
-    parser.add_argument(                # 引数を追加
-        '--show',                       # 引数名を追加
-        action='store_true',            # アクションを追加
-        help='Display the image/video in a popup window.')          # ヘルプメッセージを追加
-    parser.add_argument(                # 引数を追加
+    parser.add_argument(
+        '--show',
+        action='store_true',
+        help='Display the image/video in a popup window.')
+    parser.add_argument(
         '--draw-bbox',
         action='store_true',
         help='Whether to draw the bounding boxes.')
     parser.add_argument(
         '--draw-heatmap',
         action='store_true',
-        default=True,
+        default=False,
         help='Whether to draw the predicted heatmaps.')
     parser.add_argument(
         '--bbox-thr',
@@ -172,11 +172,6 @@ def parse_args():                                    # ここで引数をパー�
         choices=['mmpose', 'openpose'],
         help='Skeleton style selection')
     parser.add_argument(
-        '--draw-heatmaps',
-        action='store_true',
-        default=True,
-        help='Whether to draw the predicted heatmaps.')
-    parser.add_argument(
         '--black-background',
         default=False,
         action='store_true',
@@ -193,7 +188,7 @@ def parse_args():                                    # ここで引数をパー�
         help='Directory for saving inference results.')
     parser.add_argument(
         '--show-alias',
-        default=True,
+        default=False,
         action='store_true',
         help='Display all the available model aliases.')
 
@@ -204,18 +199,11 @@ def parse_args():                                    # ここで引数をパー�
         'det_weights', 'det_cat_ids', 'pose3d', 'pose3d_weights',
         'show_progress'
     ]
-    # breakpoint()
-    init_args = {}                                      # init_argsを空の辞書で初期化
-    for init_kw in init_kws:                            # init_kwsを取得
-        print('---------------------------------------------')
-        print('init_kw:', init_kw)
-        init_args[init_kw] = call_args.pop(init_kw)     # init_argsにinit_kwを追加
+    init_args = {}
+    for init_kw in init_kws:
+        init_args[init_kw] = call_args.pop(init_kw)
 
-    print('==============================================')
-    print('call_args:', call_args)
-    print('==============================================')
-    
-    display_alias = call_args.pop('show_alias')         # call_argsから'show_alias'を取得
+    display_alias = call_args.pop('show_alias')
 
     return init_args, call_args, display_alias
 
@@ -231,69 +219,86 @@ def display_model_aliases(model_aliases: Dict[str, str]) -> None:
     for alias in sorted(aliases):
         print(f'{alias.ljust(max_alias_length+2)}{model_aliases[alias]}')
 
-from mmcv.image import imread
-
-from mmpose.apis import inference_topdown, init_model
-from mmpose.registry import VISUALIZERS
-from mmpose.structures import merge_data_samples
 
 def main():
     init_args, call_args, display_alias = parse_args()
-    inferencer = MMPoseInferencer(**init_args)
-    print('---------------------------------')
-    print('init_args:', init_args)
-    print('---------------------------------')
-    print('call_args:', call_args)
-    print('---------------------------------')
-    print('display_alias:', display_alias)
-    print('---------------------------------')
-
-    model_cfg = 'configs/body_2d_keypoint/rtmpose/coco/rtmpose-m_8xb256-420e_coco-256x192.py'
-    ckpt = 'https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/rtmpose-m_simcc-body7_pt-body7-halpe26_700e-256x192-4d3e73dd_20230605.pth'
-    device = 'cuda'
-
-    model = init_model(model_cfg, ckpt, device=device)
-
-    visualizer = VISUALIZERS.build(model.cfg.visualizer)
-
-    for _ in inferencer(**call_args):
-        pass
-
-# def main():
-#     # Parse the initial arguments from command line
-#     init_args, call_args, display_alias = parse_args()
-
-#     # Define dataset path (make sure this path is correct and accessible)
-#     dataset_path = '/home/moriki/PoseEstimation/mmpose/data/crowdpose/images'
-
-#     # Create the inferencer instance outside the loop to avoid repeated instantiation
-#     inferencer = MMPoseInferencer(**init_args)
-
-#     for i in [3, 4]:
-#         image_id = 100000 + i
-#         image_path = os.path.join(dataset_path, f'{image_id}.jpg')
-
-#         # Check if the image file exists
-#         if not os.path.exists(image_path):
-#             continue  # Skip this iteration if the file does not exist
-
-#         # Set the current input image path
-#         call_args['inputs'] = image_path
+    dataset_path = '/home/moriki/PoseEstimation/mmpose/data/crowdpose/images'
+    
+    for i in [3,4]:
+        image_id = 100000 + i
+        image_path = os.path.join(dataset_path, f'{image_id}.jpg')
         
-#         # If the flag to display aliases is set, display them and skip the rest
-#         if display_alias:
-#             model_aliases = get_model_aliases(init_args['scope'])
-#             display_model_aliases(model_aliases)
-#             continue  # Skip processing if only displaying aliases
+        # # 画像ファイルが存在するかどうかをチェック
+        # if not os.path.exists(image_path):
+        #     continue  # ファイルが存在しなければ次のイテレーションへスキップ
+        call_args['inputs'] = image_path
 
-#         # Process the image and collect predictions
-#         preds = []
-#         results = inferencer(inputs=call_args['inputs'], batch_size=1, out_dir='/home/moriki/PoseEstimation/mmpose/outputs/heatmap-img')
-#         for result in results:
-#             preds.append(result)
+        init_args, call_args, display_alias = parse_args()
         
-#         # Visualize the predictions
-#         inferencer.visualize(inputs=call_args['inputs'], preds=preds, **call_args)
+        if display_alias:
+            model_aliases = get_model_aliases(init_args['scope'])
+            display_model_aliases(model_aliases)
+        else:
+            inferencer = MMPoseInferencer(**init_args)
+            for _ in inferencer(**call_args):
+                pass
+
+
+
+import mmcv
+
+def visualize_img(img_path, pose_estimator, visualizer, show_interval, out_file):
+    """Visualize predicted keypoints (and heatmaps) of one image."""
+
+    # predict keypoints
+    pose_results = inference_topdown(pose_estimator, img_path)
+    data_samples = merge_data_samples(pose_results)
+
+    # show the results
+    img = mmcv.imread(img_path, channel_order='rgb')
+
+    visualizer.add_datasample(
+        'result',
+        img,
+        data_sample=data_samples,
+        draw_gt=False,
+        draw_heatmap=True,
+        draw_bbox=False,  # Do not draw bounding boxes
+        show=False,
+        wait_time=show_interval,
+        out_file=out_file,
+        kpt_thr=0.3
+    )
+
+
+# Initialize the pose estimator
+pose_estimator = init_pose_estimator(
+    pose_config,
+    pose_checkpoint,
+    device=device,
+    cfg_options=cfg_options
+)
+
+# Initialize the visualizer with specific settings
+pose_estimator.cfg.visualizer.radius = 3
+pose_estimator.cfg.visualizer.line_width = 1
+visualizer = VISUALIZERS.build(pose_estimator.cfg.visualizer)
+# Dataset meta-information is loaded from the checkpoint and passed to the model
+visualizer.set_dataset_meta(pose_estimator.dataset_meta)
+
+# visalize the results
+import cv2
+visualize_img(
+    img,
+    detector,
+    pose_estimator,
+    visualizer,
+    show_interval=0,
+    out_file=None)
+
+vis_result = visualizer.get_image()
+
+cv2.imshow(vis_result[:,:,::-1]) #RGB2BGR to fit cv2
 
 if __name__ == "__main__":
     main()

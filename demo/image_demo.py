@@ -5,6 +5,10 @@ from argparse import ArgumentParser
 from mmcv.image import imread
 from mmengine.logging import print_log
 
+
+import sys
+sys.path.append('/home/moriki/PoseEstimation/mmpose')
+
 from mmpose.apis import inference_topdown, init_model
 from mmpose.registry import VISUALIZERS
 from mmpose.structures import merge_data_samples

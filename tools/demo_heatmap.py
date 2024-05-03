@@ -25,18 +25,9 @@ img_path = '/home/moriki/PoseEstimation/mmpose/data/pose/CrowdPose/images-origin
 # Configuration files and model checkpoints
 pose_config = 'configs/body_2d_keypoint/rtmo/crowdpose/rtmo-l_16xb16-700e_body7-crowdpose-640x640.py'
 pose_checkpoint = 'models/rtmo-l_16xb16-700e_body7-crowdpose-640x640-5bafdc11_20231219.pth'
-det_config = 'demo/mmdetection_cfg/faster_rcnn_r50_fpn_coco.py'
-det_checkpoint = 'https://download.openmmlab.com/mmdetection/v2.0/faster_rcnn/faster_rcnn_r50_fpn_1x_coco/faster_rcnn_r50_fpn_1x_coco_20200130-047c8118.pth'
 
 device = 'cuda:0'
 cfg_options = dict(model=dict(test_cfg=dict(output_heatmaps=True)))
-
-# Initialize the detector
-detector = init_detector(
-    det_config,
-    det_checkpoint,
-    device=device
-)
 
 # Initialize the pose estimator
 pose_estimator = init_pose_estimator(
@@ -48,11 +39,6 @@ pose_estimator = init_pose_estimator(
 
 # Load the image
 image = imread(img_path)
-
-# Run detection
-person_bboxes = inference_detector(detector, image)
-# Filter out low confidence detections
-person_bboxes = [bbox for bbox in person_bboxes[0] if bbox[4] > 0.3]
 
 # Run pose estimation
 pose_results = inference_topdown(
