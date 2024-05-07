@@ -151,7 +151,6 @@ class KeypointConverter(BaseTransform):
 
     def __repr__(self) -> str:
         """print the basic information of the transform.
-
         Returns:
             str: Formatted string.
         """
