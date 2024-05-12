@@ -14,6 +14,8 @@ import copy
 import json
 import logging
 
+import datetime
+
 '''
 
 '''
@@ -187,76 +189,73 @@ class CustomRunner(Runner):
 
 
     def test(self) -> dict:
-        logging.info('Start running test')
+        # logging.info('CustomRunner: Starting test method')
+
+        # Test loop構築
         if self._test_loop is None:
-            logging.info('No test loop')
-            raise RuntimeError(
-                '`self._test_loop` should not be None when calling test '
-                'method. Please provide `test_dataloader`, `test_cfg` and '
-                '`test_evaluator` arguments when initializing runner.')
-        logging.info('--------------------------Start build test loop--------------------------')
-        self._test_loop = self.build_test_loop(self._test_loop)  # type: ignore
-        logging.info('--------------------------Start call hook--------------------------')
-        self.call_hook('before_run')
-        logging.info('--------------------------Start load or resume--------------------------')
-        self.load_or_resume()
-        logging.info('--------------------------Start run--------------------------')
-        metrics = self.test_loop.run()  # type: ignore
-        logging.info('--------------------------Start call hook--------------------------')
-        self.call_hook('after_run')
-        logging.info('--------------------------End running test--------------------------')
+            # logging.debug(f'CustomRunner: Test loop: {self._test_loop}')
+            self._test_loop = self.build_test_loop(self._test_loop)  # ここはCustomRunnerで完全に制御
+            # logging.debug(f'CustomRunner: Test loop: {self._test_loop}')
+        # logging.info('CustomRunner: Test loop built')
+
+        # フックの前処理
+        # logging.info('CustomRunner: Calling before_run hook')
+        # logging.debug(f'CustomRunner: hooks: {self._hooks}')
+        self.call_hook('before_run')  # フックの呼び出しもCustomRunnerで制御
+        # logging.debug(f'CustomRunner: hooks: {self._hooks}') 
+        
+        # モデルのロードまたは再開
+        # logging.info('CustomRunner: Loading or resuming model')
+        self.load_or_resume()  # モデルロードの制御
+
+        # テストループの実行
+        # logging.info('CustomRunner: Running test loop')
+        metrics = self.test_loop.run()  # この部分では基底クラスの実装を使う可能性がある
+
+        # フックの後処理
+        # logging.info('CustomRunner: Calling after_run hook')
+        self.call_hook('after_run')  
+
+        # logging.info('CustomRunner: Test method completed')
         return metrics
 
-    def call_hook(self, fn_name: str, **kwargs) -> None:
-        """Call all hooks.
+    def call_hook(self, fn_name, **kwargs):
+        json_path = f'/home/moriki/PoseEstimation/mmpose/tools/json_file_{self.gpu_id}'
+        keys_to_log = ['outputs']
+        log_message = f'CustomRunner: {fn_name} called with '
 
-        Args:
-            fn_name (str): The function name in each hook to be called, such as
-                "before_train_epoch".
-            **kwargs: Keyword arguments passed to hook.
-        """
-        for hook in self._hooks:
-            # support adding additional custom hook methods
-            if hasattr(hook, fn_name):
-                try:
-                    getattr(hook, fn_name)(self, **kwargs)
-                except TypeError as e:
-                    raise TypeError(f'{e} in {hook}') from None
-    
-    def after_test_epoch(self, flow='test', metrics=None):
-        if hasattr(super(), 'after_test_epoch'):
-            super().after_test_epoch(flow, metrics)
-        processed_metrics = self.process_metrics(metrics)
-        self.save_processed_metrics(processed_metrics)
-    def process_metrics(self, metrics):
-        return metrics
+        logged_data = {}
+        for key in keys_to_log:
+            if key in kwargs:
+                logged_data[key] = kwargs[key]
+            else:
+                logging.warning(f'Key {key} not found in kwargs.')
 
-
-    def save_processed_metrics(self, metrics):
-        save_dir = '/home/moriki/PoseEstimation/mmpose/outputs_models'
-        file_path = os.path.join(save_dir, 'processed_metrics.json')  # JSONファイルとして保存
-        try:
-            os.makedirs(save_dir, exist_ok=True)  # ディレクトリが存在しない場合は作成
-            with open(file_path, 'w') as f:  # ファイルをテキストモードで開く
-                json.dump(metrics, f, indent=4)  # JSON形式でデータを書き込み
-            print(f"Metrics saved to {file_path}")
-        except Exception as e:
-            print(f"Failed to save metrics: {e}")
-
+        # logged_dataが空でなければ、その内容をログに記録
+        if logged_data:
+            gt_keypoints = logged_data['outputs'][0].gt_instances.keypoints
+            pred_keypoints = logged_data['outputs'][0].pred_instances.keypoints
+            
+            logging.info(log_message + str(logged_data))
+        # logging.info(f'CustomRunner: kwargs: {kwargs}')     #! この部分でKeypointとBBoxの情報を記録します
+        super().call_hook(fn_name, **kwargs)
+        
 
 def main():
+    time = datetime.datetime.now().strftime('%Y%m%d_%H%M')
     logging.basicConfig(
-        filename='example.log',  # ログを保存するファイル名
+        filename=f'example_{time}.log',  # ログを保存するファイル名に現在の日付と時間を反映
         filemode='a',            # 'a' は追記モード、'w' は上書きモード
         level=logging.DEBUG,     # ログレベル
         format='%(asctime)s - %(levelname)s - %(message)s'  # ログのフォーマット
     )
+    # 残りのコードは同じです。
     args = parse_args()
     cfg = Config.fromfile(args.config)
     cfg = merge_args(cfg, args)
     runner = CustomRunner.from_cfg(cfg)
-    metrics = runner.test()
-    runner.after_test_epoch(metrics)
+    runner.test()
+    # runner.after_test_epoch(metrics)
 
 if __name__ == '__main__':
     main()

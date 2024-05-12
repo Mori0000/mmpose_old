@@ -13,10 +13,8 @@ import os
 import copy
 import json
 import logging
-import torch
 
 import datetime
-import numpy as np
 
 '''
 
@@ -154,34 +152,6 @@ def merge_args(cfg, args):                              # ここで引数をマ�
     return cfg
 
 
-def convert_ndarray(data):
-    """Recursively convert numpy arrays to lists."""
-    if isinstance(data, np.ndarray):
-        return data.tolist()
-    elif isinstance(data, dict):
-        return {key: convert_ndarray(value) for key, value in data.items()}
-    elif isinstance(data, list):
-        return [convert_ndarray(item) for item in data]
-    return data
-
-def append_to_json_file(file_path, new_data):
-    """Append new data to a JSON file or create it if it does not exist."""
-    if os.path.exists(file_path):
-        with open(file_path, 'r+') as file:
-            try:
-                data = json.load(file)  # Existing data
-                data.append(new_data)  # Append new data
-                file.seek(0)  # Rewind to the start of the file
-                json.dump(data, file, indent=4)
-                file.truncate()  # Truncate file to new data size
-            except json.JSONDecodeError:
-                data = [new_data]  # Reset if file is corrupted
-                file.seek(0)
-                json.dump(data, file, indent=4)
-    else:
-        with open(file_path, 'w') as file:
-            json.dump([new_data], file, indent=4)  # Start a new list with the data
-
 class CustomRunner(Runner):
     @classmethod
     def from_cfg(cls, cfg) -> 'Runner':
@@ -219,46 +189,39 @@ class CustomRunner(Runner):
 
 
     def test(self) -> dict:
+        # logging.info('CustomRunner: Starting test method')
+
+        # Test loop構築
         if self._test_loop is None:
+            # logging.debug(f'CustomRunner: Test loop: {self._test_loop}')
             self._test_loop = self.build_test_loop(self._test_loop)  # ここはCustomRunnerで完全に制御
+            # logging.debug(f'CustomRunner: Test loop: {self._test_loop}')
+        # logging.info('CustomRunner: Test loop built')
+
+        # フックの前処理
+        # logging.info('CustomRunner: Calling before_run hook')
+        # logging.debug(f'CustomRunner: hooks: {self._hooks}')
         self.call_hook('before_run')  # フックの呼び出しもCustomRunnerで制御
+        # logging.debug(f'CustomRunner: hooks: {self._hooks}')
+        
+        # モデルのロードまたは再開
+        # logging.info('CustomRunner: Loading or resuming model')
         self.load_or_resume()  # モデルロードの制御
+
+        # テストループの実行
+        # logging.info('CustomRunner: Running test loop')
         metrics = self.test_loop.run()  # この部分では基底クラスの実装を使う可能性がある
-        self.call_hook('after_run')
+
+        # フックの後処理
+        # logging.info('CustomRunner: Calling after_run hook')
+        self.call_hook('after_run')  # フックの呼び出しもCustomRunnerで制御
+
+        # logging.info('CustomRunner: Test method completed')
         return metrics
 
     def call_hook(self, fn_name, **kwargs):
-        json_path = f'/home/moriki/PoseEstimation/mmpose/tools/mmpose_data_{torch.cuda.current_device()}.json'
-        keys_to_log = ['outputs']
-        log_message = f'CustomRunner: {fn_name} called with '
-
-        logged_data = {}
-        for key in keys_to_log:
-            if key in kwargs:
-                logged_data[key] = kwargs[key]
-            else:
-                logging.warning(f'Key {key} not found in kwargs.')
-
-        if logged_data:
-            log_data = logged_data['outputs'][0]
-            img_id = log_data.img_id
-            pred_keypoints = log_data.pred_instances.keypoints
-            keypoint_scores = log_data.pred_instances.keypoint_scores
-            
-            # Convert numpy arrays to lists
-            pred_keypoints_list = convert_ndarray(pred_keypoints)
-            keypoint_scores_list = convert_ndarray(keypoint_scores)
-
-            # Prepare data to save
-            data_to_save = {
-                'img_id': img_id,
-                'pred_keypoints': pred_keypoints_list,
-                'keypoint_scores': keypoint_scores_list,
-            }
-
-            # Append data to JSON file
-            append_to_json_file(json_path, data_to_save)
-
+        # logging.info(f'CustomRunner: Calling {fn_name} hook')
+        logging.info(f'CustomRunner: kwargs: {kwargs}')
         super().call_hook(fn_name, **kwargs)
         
 

@@ -18,6 +18,11 @@ import torch
 import datetime
 import numpy as np
 
+import cv2
+
+import clip
+from PIL import Image
+
 '''
 
 '''
@@ -228,36 +233,42 @@ class CustomRunner(Runner):
         return metrics
 
     def call_hook(self, fn_name, **kwargs):
-        json_path = f'/home/moriki/PoseEstimation/mmpose/tools/mmpose_data_{torch.cuda.current_device()}.json'
-        keys_to_log = ['outputs']
-        log_message = f'CustomRunner: {fn_name} called with '
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        # model, preprocess = clip.load("ViT-B/32", device=device)
+        key = 'outputs'
+        if key in kwargs:
+            for kwarg in kwargs[key]:
+                if kwarg:
+                    img_id = kwarg.img_id
+                    pred_keypoints = kwarg.pred_instances.keypoints
+                    
+                    img_path = f'/home/moriki/PoseEstimation/mmpose/data/pose/CrowdPose/images-origin/{img_id}.jpg'
+                    
+                    for j in range(len(pred_keypoints)):
+                        # pred_keypointsの中の最大最小を抽出
+                        min_x = min(pred_keypoints[j].T[0])
+                        max_x = max(pred_keypoints[j].T[0])
+                        min_y = min(pred_keypoints[j].T[1])
+                        max_y = max(pred_keypoints[j].T[1])
+                        
+                        # 画像の識別
+                    #     image = preprocess(Image.open(img_path)).unsqueeze(0).to(device)
+                    #     # 画像の切り抜き
+                    #     image = image[:, :, int(min_y):int(max_y), int(min_x):int(max_x)]
+                    #     text = clip.tokenize(["human", "object"]).to(device)
 
-        logged_data = {}
-        for key in keys_to_log:
-            if key in kwargs:
-                logged_data[key] = kwargs[key]
-            else:
-                logging.warning(f'Key {key} not found in kwargs.')
+                    #     with torch.no_grad():
+                    #         logits_per_image, logits_per_text = model(image, text)
+                    #         probs = logits_per_image.softmax(dim=-1).cpu().numpy()
+                            
+                    #         # 人の確率の方が低い場合、そのKeypoints,scoresを削除
+                    #         if probs[0][0] < 0.5:
+                    #             pred_keypoints[j] = None
+                    #             kwarg.pred_instances.scores[j] = None
+                    # kwarg.pred_instances.keypoints = pred_keypoints
 
-        if logged_data:
-            log_data = logged_data['outputs'][0]
-            img_id = log_data.img_id
-            pred_keypoints = log_data.pred_instances.keypoints
-            keypoint_scores = log_data.pred_instances.keypoint_scores
-            
-            # Convert numpy arrays to lists
-            pred_keypoints_list = convert_ndarray(pred_keypoints)
-            keypoint_scores_list = convert_ndarray(keypoint_scores)
-
-            # Prepare data to save
-            data_to_save = {
-                'img_id': img_id,
-                'pred_keypoints': pred_keypoints_list,
-                'keypoint_scores': keypoint_scores_list,
-            }
-
-            # Append data to JSON file
-            append_to_json_file(json_path, data_to_save)
+        else:
+            logging.warning(f'Key {key} not found in kwargs.')
 
         super().call_hook(fn_name, **kwargs)
         

@@ -18,6 +18,14 @@ import torch
 import datetime
 import numpy as np
 
+import cv2
+
+import clip
+from PIL import Image, ImageOps
+
+from torchvision.transforms import ToTensor
+from torchvision import transforms
+
 '''
 
 '''
@@ -227,45 +235,91 @@ class CustomRunner(Runner):
         self.call_hook('after_run')
         return metrics
 
+    def resize_with_padding(self, img, target_size=(224, 224)):
+        """画像のアスペクト比を保持しつつ、指定のサイズにリサイズします。"""
+        # 元の画像サイズとターゲットサイズ
+        original_width, original_height = img.size
+        target_width, target_height = target_size
+
+        # アスペクト比を計算
+        ratio = min(target_width / original_width, target_height / original_height)
+        new_width = int(original_width * ratio)
+        new_height = int(original_height * ratio)
+
+        # アスペクト比を保持してリサイズ
+        img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+
+        # パディングを追加して中央に配置
+        padded_img = ImageOps.pad(img, target_size, method=Image.Resampling.LANCZOS, color='black')
+
+        return padded_img
+
+
     def call_hook(self, fn_name, **kwargs):
-        json_path = f'/home/moriki/PoseEstimation/mmpose/tools/mmpose_data_{torch.cuda.current_device()}.json'
-        keys_to_log = ['outputs']
-        log_message = f'CustomRunner: {fn_name} called with '
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        model, preprocess = clip.load("ViT-B/32", device=device)
+        key = 'outputs'
+        if key in kwargs:
+            if not hasattr(self, 'save_counter'):
+                self.save_counter = 0  # カウンターを初期化
 
-        logged_data = {}
-        for key in keys_to_log:
-            if key in kwargs:
-                logged_data[key] = kwargs[key]
-            else:
-                logging.warning(f'Key {key} not found in kwargs.')
+            for kwarg in kwargs[key]:
+                if kwarg:
+                    img_id = kwarg.img_id
+                    pred_keypoints = kwarg.pred_instances.keypoints
+                    
+                    img_path = f'/home/moriki/PoseEstimation/mmpose/data/pose/CrowdPose/images-origin/{img_id}.jpg'
+                    img = Image.open(img_path).convert("RGB")
+                    
+                    for keypoints in pred_keypoints:
+                        min_x = int(max(0, np.min(keypoints[:, 0]) * 0.9))
+                        max_x = int(min(img.width, np.max(keypoints[:, 0]) * 1.1))
+                        min_y = int(max(0, np.min(keypoints[:, 1]) * 0.9))
+                        max_y = int(min(img.height, np.max(keypoints[:, 1]) * 1.1))
+                        
+                        crop_img = img.crop((min_x, min_y, max_x, max_y))                # (H, W, 3)  H, W >= 32
+                        resized_image = self.resize_with_padding(crop_img)
+                        clip_image = preprocess(resized_image).unsqueeze(0).to(device)       # (1, 3, 224, 224)
+                        
+                        text = clip.tokenize(["A image of a human", "A image of an object"]).to(device)
+                        with torch.no_grad():
+                            image_features = model.encode_image(clip_image)
+                            text_features = model.encode_text(text)
+                            
+                            logits_per_image, logits_per_text = model(clip_image, text)
+                            probs = logits_per_image.softmax(dim=-1).cpu().numpy()
+                        
+                        # # 20回に1回の割合で画像を保存
+                        # if self.save_counter % 20 == 0:
+                        #     save_path = f'/home/moriki/PoseEstimation/mmpose/outputs/cropped_images/{img_id}_{max_x-min_x},{max_y-min_y}_{probs[0][0]}.png'
+                        #     clip_image_cpu = clip_image.squeeze(0).cpu()
 
-        if logged_data:
-            log_data = logged_data['outputs'][0]
-            img_id = log_data.img_id
-            pred_keypoints = log_data.pred_instances.keypoints
-            keypoint_scores = log_data.pred_instances.keypoint_scores
-            
-            # Convert numpy arrays to lists
-            pred_keypoints_list = convert_ndarray(pred_keypoints)
-            keypoint_scores_list = convert_ndarray(keypoint_scores)
+                        #     # 正規化されたデータを [0, 255] の範囲に変換
+                        #     clip_image_cpu = ((clip_image_cpu + 1) * 0.5 * 255).clamp(0, 255).byte()
+                            
+                        #     save_image = transforms.ToPILImage()(clip_image_cpu)
+                        #     save_image.save(save_path)
+                        #     print(f"Saved clip image to {save_path}")
 
-            # Prepare data to save
-            data_to_save = {
-                'img_id': img_id,
-                'pred_keypoints': pred_keypoints_list,
-                'keypoint_scores': keypoint_scores_list,
-            }
+                    breakpoint()
+                    kwarg.pred_instances.keypoints = pred_keypoints
 
-            # Append data to JSON file
-            append_to_json_file(json_path, data_to_save)
+            self.save_counter += 1
+
+        else:
+            logging.warning(f'Key {key} not found in kwargs.')
 
         super().call_hook(fn_name, **kwargs)
+
+
+
+
         
 
 def main():
     time = datetime.datetime.now().strftime('%Y%m%d_%H%M')
     logging.basicConfig(
-        filename=f'example_{time}.log',  # ログを保存するファイル名に現在の日付と時間を反映
+        filename=f'log/example_{time}.log',  # ログを保存するファイル名に現在の日付と時間を反映
         filemode='a',            # 'a' は追記モード、'w' は上書きモード
         level=logging.DEBUG,     # ログレベル
         format='%(asctime)s - %(levelname)s - %(message)s'  # ログのフォーマット
