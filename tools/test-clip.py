@@ -272,10 +272,10 @@ class CustomRunner(Runner):
                     image = Image.open(img_path).convert("RGB")
                     
                     for keypoints in pred_keypoints:
-                        min_x = int(max(0, min(keypoints.T[0])))
-                        max_x = int(max(min_x + 1, max(keypoints.T[0])))
-                        min_y = int(max(0, min(keypoints.T[1])))
-                        max_y = int(max(min_y + 1, max(keypoints.T[1])))
+                        min_x = int(max(0, min(keypoints.T[0]))*0.9)
+                        max_x = int(max(min_x + 1, max(keypoints.T[0]))*1.1)
+                        min_y = int(max(0, min(keypoints.T[1]))*0.9)
+                        max_y = int(max(min_y + 1, max(keypoints.T[1]))*1.1)
                         
                         cropped_image = image.crop((min_x, min_y, max_x, max_y))                # (H, W, 3)  H, W >= 32
                         # 画像保存のための条件分岐
@@ -294,17 +294,22 @@ class CustomRunner(Runner):
                             logits_per_image, logits_per_text = model(clip_image, text)
                             probs = logits_per_image.softmax(dim=-1).cpu().numpy()
                         
+                        if probs[0][1] > 0.7:
+                            save_path = f'/home/moriki/PoseEstimation/mmpose/outputs/cropped_images/{img_id}_{probs[0][1]}.png'
+                            cropped_image.save(save_path)
+                            print(f"Image {img_id} is an object with probability {probs[0][1]}")
+                        
                         # 20回に1回の割合で画像を保存
-                        if self.save_counter % 20 == 0:
-                            save_path = f'/home/moriki/PoseEstimation/mmpose/outputs/cropped_images/{img_id}_{max_x-min_x},{max_y-min_y}_{probs[0][0]}.png'
-                            clip_image_cpu = clip_image.squeeze(0).cpu()
+                        # if self.save_counter % 20 == 0:
+                        #     save_path = f'/home/moriki/PoseEstimation/mmpose/outputs/cropped_images/{img_id}_{max_x-min_x},{max_y-min_y}_{probs[0][0]}.png'
+                        #     clip_image_cpu = clip_image.squeeze(0).cpu()
 
-                            # 正規化されたデータを [0, 255] の範囲に変換
-                            clip_image_cpu = ((clip_image_cpu + 1) * 0.5 * 255).clamp(0, 255).byte()
+                        #     # 正規化されたデータを [0, 255] の範囲に変換
+                        #     clip_image_cpu = ((clip_image_cpu + 1) * 0.5 * 255).clamp(0, 255).byte()
                             
-                            save_image = transforms.ToPILImage()(clip_image_cpu)
-                            save_image.save(save_path)
-                            print(f"Saved clip image to {save_path}")
+                        #     save_image = transforms.ToPILImage()(clip_image_cpu)
+                        #     save_image.save(save_path)
+                        #     print(f"Saved clip image to {save_path}")
 
                     kwarg.pred_instances.keypoints = pred_keypoints
 
@@ -314,11 +319,7 @@ class CustomRunner(Runner):
             logging.warning(f'Key {key} not found in kwargs.')
 
         super().call_hook(fn_name, **kwargs)
-
-
-
-
-        
+      
 
 def main():
     time = datetime.datetime.now().strftime('%Y%m%d_%H%M')

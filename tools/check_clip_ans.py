@@ -1,6 +1,6 @@
 import torch
 import clip
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, ImageDraw
 import json
 import numpy as np
 import cv2
@@ -36,6 +36,14 @@ def plot_keypoints(img, keypoints, scores):
 
     return Image.fromarray(img)
 
+# def plot_keypoints(img, keypoints, scores, min_x, min_y, max_x, max_y):
+#     draw = ImageDraw.Draw(img)
+#     for keypoint in keypoints:
+#         x, y = keypoint
+#         draw.ellipse((x-3, y-3, x+3, y+3), outline="red", width=2)
+#     draw.rectangle([min_x, min_y, max_x, max_y], outline="red", width=2)
+#     return img
+
 def resize_with_padding(img, target_size=(224, 224)):
     # 元の画像サイズとターゲットサイズ
     original_width, original_height = img.size
@@ -62,7 +70,8 @@ def main():
     with open(json_path, 'r') as f:
         Kpt_data = json.load(f)
 
-    for img_id in range(100000, 100040):
+    for img_id in [100003]:
+        # img_path = '/home/moriki/PoseEstimation/mmpose/tools/100003_masic.jpg'
         img_path = f'/home/moriki/PoseEstimation/mmpose/data/pose/CrowdPose/images-origin/{img_id}.jpg'
         keypoints_set, scores_set = None, None
         for data in Kpt_data:
@@ -86,21 +95,26 @@ def main():
             scores_array = np.array(scores)
 
             # Check confidence for keypoints 12 and 13
-            if scores_array[12] >= 0.9 and scores_array[13] >= 0.9:
-                # Calculate crop for face
-                x1, y1 = keypoints_array[12]
-                x2, y2 = keypoints_array[13]
-                distance = int(((x2 - x1)**2 + (y2 - y1)**2)**0.5)
-                min_x = max(0, int((x1 + x2) / 2 - distance / 2))
-                max_x = min(img.width, int((x1 + x2) / 2 + distance / 2))
-                min_y = max(0, int((y1 + y2) / 2 - distance / 2))
-                max_y = min(img.height, int((y1 + y2) / 2 + distance / 2))
-            else:
-                # Calculate crop for full body
-                min_x = int(max(0, np.min(keypoints_array[:, 0])*0.9))
-                max_x = int(max(min_x + 1, np.max(keypoints_array[:, 0])*1.1))
-                min_y = int(max(0, np.min(keypoints_array[:, 1])*0.9))
-                max_y = int(max(min_y + 1, np.max(keypoints_array[:, 1])*1.1))
+            # if scores_array[12] >= 0.9 and scores_array[13] >= 0.9:
+            #     # Calculate crop for face
+            #     x1, y1 = keypoints_array[12]
+            #     x2, y2 = keypoints_array[13]
+            #     distance = int(((x2 - x1)**2 + (y2 - y1)**2)**0.5)
+            #     min_x = max(0, int((x1 + x2) / 2 - distance / 2))
+            #     max_x = min(img.width, int((x1 + x2) / 2 + distance / 2))
+            #     min_y = max(0, int((y1 + y2) / 2 - distance / 2))
+            #     max_y = min(img.height, int((y1 + y2) / 2 + distance / 2))
+            # else:
+            #     # Calculate crop for full body
+            #     min_x = int(max(0, np.min(keypoints_array[:, 0])*0.9))
+            #     max_x = int(max(min_x + 1, np.max(keypoints_array[:, 0])*1.1))
+            #     min_y = int(max(0, np.min(keypoints_array[:, 1])*0.9))
+            #     max_y = int(max(min_y + 1, np.max(keypoints_array[:, 1])*1.1))
+
+            min_x = int(max(0, np.min(keypoints_array[:, 0])*0.9))
+            max_x = int(max(min_x + 1, np.max(keypoints_array[:, 0])*1.1))
+            min_y = int(max(0, np.min(keypoints_array[:, 1])*0.9))
+            max_y = int(max(min_y + 1, np.max(keypoints_array[:, 1])*1.1))
 
             crop_img = img.crop((min_x, min_y, max_x, max_y))
             clip_image = preprocess(crop_img).unsqueeze(0).to(device)
@@ -113,8 +127,8 @@ def main():
             prob_formatted = f"{probs[0][0]:.2f}_{probs[0][1]:.2f}"
             plot_img = plot_keypoints(img, keypoints_array, scores)  # Pass scores array to plot_keypoints
             crop_plot_img = plot_img.crop((min_x, min_y, max_x, max_y))
-            crop_img.save(f'/home/moriki/PoseEstimation/mmpose/outputs/check_clip2/{img_id}_{i}.jpg')
-            crop_plot_img.save(f'/home/moriki/PoseEstimation/mmpose/outputs/check_clip2/{img_id}_{i}_{prob_formatted}.jpg')
+            crop_img.save(f'/home/moriki/PoseEstimation/mmpose/outputs/check_clip/{img_id}_{i}.jpg')
+            crop_plot_img.save(f'/home/moriki/PoseEstimation/mmpose/outputs/check_clip/{img_id}_{i}_{prob_formatted}.jpg')
             print("Label probabilities:", probs)
 
 # Call the main function
