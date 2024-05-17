@@ -100,7 +100,8 @@ def process_image(img_id, json_path, images_path, output_path, min_size=20):
 
             # 切り出し領域の計算（1.1倍）
             center_x, center_y = (min_x + max_x) / 2, (min_y + max_y) / 2
-            width, height = (max_x - min_x) * 1.1, (max_y - min_y) * 1.1
+            # width, height = (max_x - min_x) * 1.1, (max_y - min_y) * 1.1
+            width, height = (max_x - min_x), (max_y - min_y)
             min_x, min_y = center_x - width / 2, center_y - height / 2
             max_x, max_y = center_x + width / 2, center_y + height / 2
 
@@ -148,7 +149,7 @@ def process_image(img_id, json_path, images_path, output_path, min_size=20):
 # パスの設定（環境に合わせて変更）
 json_path = '/home/moriki/PoseEstimation/mmpose/data/crowdpose/annotations/mmpose_crowdpose_train.json'
 images_path = '/home/moriki/PoseEstimation/mmpose/data/pose/CrowdPose/images-origin'  # 画像が保存されているディレクトリ
-output_path = '/home/moriki/PoseEstimation/mmpose/data/outputs/cropped-images/gts'  # 切り出した画像を保存するディレクトリ
+output_path = '/home/moriki/PoseEstimation/mmpose/data/outputs/cropped-images/gts2'  # 切り出した画像を保存するディレクトリ
 
 # 処理する画像IDの範囲
 for img_id in range(100000, 100010):
