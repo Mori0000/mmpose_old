@@ -23,6 +23,7 @@ __pycache__/
 *.npz.json
 *.csv
 *.csv.json
+*.gif
 
 
 # C extensions
@@ -42,6 +43,7 @@ parts/
 sdist/
 var/
 wheels/
+segment-anything/*
 *.egg-info/
 .installed.cfg
 *.egg
