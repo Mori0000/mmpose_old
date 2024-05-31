@@ -50,10 +50,10 @@ def main():
     with open(json_path, 'r') as f:
         Kpt_data = json.load(f)
 
-    output_dir = '/home/moriki/PoseEstimation/mmpose/outputs/check_clip_circle3'
+    output_dir = '/home/moriki/PoseEstimation/mmpose/outputs/clip_circle'
     os.makedirs(output_dir, exist_ok=True)
     preds = []
-    for img_id in [100003, 100007, 100010]:
+    for img_id in [100003, 100005, 100006, 100007]:
         pred = []
         img_path = f'/home/moriki/PoseEstimation/mmpose/data/pose/CrowdPose/images-origin/{img_id}.jpg'
         keypoints_set, scores_set = None, None
@@ -118,14 +118,21 @@ def main():
             else:
                 pred.append(1)        
         preds.append(pred)
-    # score
+    # Expected answers for comparison
     ans = [
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1]
+        [0] * 32,  # Adjusted length to match the number of images for img_id 100003
+        [0] * 15,  # Adjusted length for img_id 100005
+        [0] * 5,   # Adjusted length for img_id 100006
+        [0] * 22   # Adjusted length for img_id 100007
     ]
     
+    # オブジェクトの画像番号
+    ans[0][10],ans[0][18],ans[0][21]  = 1,1,1
+    ans[2][3] = 1
+    ans[3][21] = 1
+    
     for i, (pred, an) in enumerate(zip(preds, ans)):
+        print(f'evaluating {output_dir}')
         print(f'img_id: {i}')
         print(f'pred: {pred}')
         print(f'ans: {an}')

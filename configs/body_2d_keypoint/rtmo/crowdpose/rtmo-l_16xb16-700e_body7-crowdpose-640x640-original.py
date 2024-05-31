@@ -497,6 +497,6 @@ model = dict(
     ),
     test_cfg=dict(
         input_size=input_size,
-        score_thr=0.01,
+        score_thr=0.1,
         nms_thr=0.65,
     ))
