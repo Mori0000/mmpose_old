@@ -21,4 +21,4 @@ srun -p ${PARTITION} \
     --cpus-per-task=${CPUS_PER_TASK} \
     --kill-on-bad-exit=1 \
     ${SRUN_ARGS} \
-    python -u tools/test.py ${CONFIG} ${CHECKPOINT} --launcher="slurm" ${@:5}
+    python -u tools/test-origin.py ${CONFIG} ${CHECKPOINT} --launcher="slurm" ${@:5}

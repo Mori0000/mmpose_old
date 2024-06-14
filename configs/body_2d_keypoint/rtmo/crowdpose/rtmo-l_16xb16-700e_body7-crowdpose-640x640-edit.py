@@ -107,7 +107,7 @@ train_pipeline_stage2 = [
 
 # data settings
 data_mode = 'bottomup'
-data_root = 'data_dl20/'
+data_root = 'data/'
 
 # mapping
 aic_crowdpose = [(3, 0), (0, 1), (4, 2), (1, 3), (5, 4), (2, 5),
@@ -195,6 +195,19 @@ dataset_coco = dict(
     ],
 )
 
+dataset_aic = dict(
+    type='AicDataset',
+    data_root=data_root,
+    data_mode=data_mode,
+    ann_file='aic/annotations/aic_train.json',
+    data_prefix=dict(img='pose/ai_challenge/ai_challenger_keypoint'
+                     '_train_20170902/keypoint_train_images_20170902/'),
+    pipeline=[
+        dict(
+            type='KeypointConverter', num_keypoints=14, mapping=aic_crowdpose)
+    ],
+)
+
 dataset_crowdpose = dict(
     type='CrowdPoseDataset',
     data_root=data_root,
@@ -209,13 +222,73 @@ dataset_crowdpose = dict(
     ],
 )
 
+dataset_mpii = dict(
+    type='MpiiDataset',
+    data_root=data_root,
+    data_mode=data_mode,
+    ann_file='mpii/annotations/mpii_train.json',
+    data_prefix=dict(img='pose/MPI/images/'),
+    pipeline=[
+        dict(
+            type='KeypointConverter', num_keypoints=14, mapping=mpii_crowdpose)
+    ],
+)
+
+dataset_jhmdb = dict(
+    type='JhmdbDataset',
+    data_root=data_root,
+    data_mode=data_mode,
+    ann_file='jhmdb/annotations/Sub1_train.json',
+    data_prefix=dict(img='pose/JHMDB/'),
+    pipeline=[
+        dict(
+            type='KeypointConverter',
+            num_keypoints=14,
+            mapping=jhmdb_crowdpose)
+    ],
+)
+
+dataset_halpe = dict(
+    type='HalpeDataset',
+    data_root=data_root,
+    data_mode=data_mode,
+    ann_file='halpe/annotations/halpe_train_v1.json',
+    data_prefix=dict(img='pose/Halpe/hico_20160224_det/images/train2015'),
+    pipeline=[
+        dict(
+            type='KeypointConverter',
+            num_keypoints=14,
+            mapping=halpe_crowdpose)
+    ],
+)
+
+dataset_posetrack = dict(
+    type='PoseTrack18Dataset',
+    data_root=data_root,
+    data_mode=data_mode,
+    ann_file='posetrack18/annotations/posetrack18_train.json',
+    data_prefix=dict(img='pose/PoseChallenge2018/'),
+    pipeline=[
+        dict(
+            type='KeypointConverter',
+            num_keypoints=14,
+            mapping=posetrack_crowdpose)
+    ],
+)
+
 train_dataset_stage1 = dict(
     type='CombinedDataset',
     metainfo=dict(from_file=metafile),
     datasets=[
-        dataset_crowdpose
+        dataset_coco,
+        dataset_aic,
+        dataset_crowdpose,
+        dataset_mpii,
+        dataset_jhmdb,
+        dataset_halpe,
+        dataset_posetrack,
     ],
-    sample_ratio_factor=[1],
+    sample_ratio_factor=[1, 0.3, 1, 0.3, 0.3, 0.4, 0.3],
     test_mode=False,
     pipeline=train_pipeline_stage1)
 
@@ -424,6 +497,6 @@ model = dict(
     ),
     test_cfg=dict(
         input_size=input_size,
-        score_thr=0.1,
+        score_thr=0.01,
         nms_thr=0.65,
     ))

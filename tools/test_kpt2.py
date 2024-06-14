@@ -18,6 +18,11 @@ import torch
 import datetime
 import numpy as np
 
+import cv2
+import json
+import numpy as np
+import matplotlib.pyplot as plt
+from PIL import Image
 
 '''
 
@@ -228,18 +233,53 @@ class CustomRunner(Runner):
         self.call_hook('after_run')
         return metrics
 
+
+    def display_image_with_keypoints_and_bboxes(self, image_path, keypoints, bboxes):
+        # Load the image
+        image = cv2.imread(image_path)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        
+        # Draw keypoints
+        for kp in keypoints:
+            x, y = int(kp[0]), int(kp[1])
+            cv2.circle(image, (x, y), 5, (0, 255, 0), -1)
+
+        # Draw bounding boxes
+        for bbox in bboxes:
+            x1, y1, x2, y2 = int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])
+            cv2.rectangle(image, (x1, y1), (x2, y2), (255, 0, 0), 2)
+
+        # Display the image
+        plt.imshow(image)
+        plt.axis('off')
+        plt.show()
+        # Save the image
+        output_dir = '/home/moriki/PoseEstimation/mmpose/data/outputs/img_cropped'
+        output_path = os.path.join(output_dir, os.path.basename(image_path))
+        image_to_save = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+        cv2.imwrite(output_path, image_to_save)
+
     def call_hook(self, fn_name, **kwargs):
         today = datetime.datetime.now().strftime('%Y%m%d')
         json_path = f'/home/moriki/PoseEstimation/mmpose/tools/json_file/origin/mmpose_data_{today}_{torch.cuda.current_device()}.json'
-        keys_to_log = ['outputs']
         log_message = f'CustomRunner: {fn_name} called with '
-
+        
         logged_data = {}
-        for key in keys_to_log:
-            if key in kwargs:
-                logged_data[key] = kwargs[key]
-            else:
-                logging.warning(f'Key {key} not found in kwargs.')
+        
+        if 'outputs' in kwargs:
+            logged_data['outputs'] = kwargs['outputs']
+            crop_json_path = '/home/moriki/PoseEstimation/mmpose/data/pose/CrowdPose/jsonfiles/kpt_yolo.json'
+            
+            with open(crop_json_path, 'r') as crop_json_file:
+                crop_json_data = json.load(crop_json_file)
+                
+                if crop_json_data:
+                    for data in crop_json_data:
+                        if data['img_id'] == kwargs['outputs'][0].img_id:
+                            x2 = data['coordinates']['x2']
+                            y2 = data['coordinates']['y2']
+                            kwargs['outputs'][0].pred_instances.keypoints += np.array([x2, y2])
+                            kwargs['outputs'][0].pred_instances.bboxes += np.array([x2, y2, x2, y2])
 
         if logged_data:
             log_data = logged_data['outputs'][0]
@@ -247,7 +287,7 @@ class CustomRunner(Runner):
             pred_keypoints = log_data.pred_instances.keypoints
             keypoint_scores = log_data.pred_instances.keypoint_scores
             bboxes = log_data.pred_instances.bboxes
-            
+            # kwargs['outputs'][0].pred_instances.keypoints これが予測結果のキーポイント座標
             # Convert numpy arrays to lists
             pred_keypoints_list = convert_ndarray(pred_keypoints)
             keypoint_scores_list = convert_ndarray(keypoint_scores)
@@ -263,6 +303,10 @@ class CustomRunner(Runner):
 
             # Append data to JSON file
             append_to_json_file(json_path, data_to_save)
+            # Display the image with keypoints and bboxes
+            image_path = f'/home/moriki/PoseEstimation/mmpose/data/pose/CrowdPose/images-original/{img_id}.jpg'
+            self.display_image_with_keypoints_and_bboxes(image_path, pred_keypoints, bboxes)
+    
         super().call_hook(fn_name, **kwargs)
 
         

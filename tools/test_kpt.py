@@ -231,15 +231,24 @@ class CustomRunner(Runner):
     def call_hook(self, fn_name, **kwargs):
         today = datetime.datetime.now().strftime('%Y%m%d')
         json_path = f'/home/moriki/PoseEstimation/mmpose/tools/json_file/origin/mmpose_data_{today}_{torch.cuda.current_device()}.json'
-        keys_to_log = ['outputs']
         log_message = f'CustomRunner: {fn_name} called with '
-
+        
         logged_data = {}
-        for key in keys_to_log:
-            if key in kwargs:
-                logged_data[key] = kwargs[key]
-            else:
-                logging.warning(f'Key {key} not found in kwargs.')
+        
+        if 'outputs' in kwargs:
+            logged_data['outputs'] = kwargs['outputs']
+            # crop_json_path = '/home/moriki/PoseEstimation/mmpose/data/pose/CrowdPose/jsonfiles/kpt_all_gt.json'
+            crop_json_path = '/home/moriki/PoseEstimation/mmpose/data/pose/CrowdPose/jsonfiles/kpt_demo.json'
+            
+            with open(crop_json_path, 'r') as crop_json_file:
+                crop_json_data = json.load(crop_json_file)
+                
+                if crop_json_data:
+                    for data in crop_json_data:
+                        if data['img_id'] == kwargs['outputs'][0].img_id:
+                            x2 = data['coordinates']['x1']  # 小さい方を採用
+                            y2 = data['coordinates']['y1']  # 小さい方を採用
+                            kwargs['outputs'][0].pred_instances.keypoints += np.array([x2, y2])
 
         if logged_data:
             log_data = logged_data['outputs'][0]
@@ -247,7 +256,7 @@ class CustomRunner(Runner):
             pred_keypoints = log_data.pred_instances.keypoints
             keypoint_scores = log_data.pred_instances.keypoint_scores
             bboxes = log_data.pred_instances.bboxes
-            
+            # kwargs['outputs'][0].pred_instances.keypoints これが予測結果のキーポイント座標
             # Convert numpy arrays to lists
             pred_keypoints_list = convert_ndarray(pred_keypoints)
             keypoint_scores_list = convert_ndarray(keypoint_scores)

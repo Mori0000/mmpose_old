@@ -3,6 +3,7 @@ import json
 '''
 jsonファイルを結合する
 '''
+from datetime import datetime
 
 def concat_json_files(json_files, output_file):
     data = []
@@ -13,14 +14,19 @@ def concat_json_files(json_files, output_file):
         json.dump(data, f)
 
 if __name__ == '__main__':
-    json_0 = '/home/moriki/PoseEstimation/mmpose/tools/json_file/mmpose_data_0.json'
-    json_1 = '/home/moriki/PoseEstimation/mmpose/tools/json_file/mmpose_data_1.json'
-    json_2 = '/home/moriki/PoseEstimation/mmpose/tools/json_file/mmpose_data_2.json'
-    json_3 = '/home/moriki/PoseEstimation/mmpose/tools/json_file/mmpose_data_3.json'
+    today_date = datetime.now().strftime("%Y%m%d")
+
+    json_0 = f'/home/moriki/PoseEstimation/mmpose/tools/json_file/origin/mmpose_data_{today_date}_0.json'
+    json_1 = f'/home/moriki/PoseEstimation/mmpose/tools/json_file/origin/mmpose_data_{today_date}_1.json'
+    json_2 = f'/home/moriki/PoseEstimation/mmpose/tools/json_file/origin/mmpose_data_{today_date}_2.json'
+    json_3 = f'/home/moriki/PoseEstimation/mmpose/tools/json_file/origin/mmpose_data_{today_date}_3.json'
     
     json_files = [json_0, json_1, json_2, json_3]
-    output_file = '/home/moriki/PoseEstimation/mmpose/tools/json_file/mmpose_data.json'
+    
+    output_file = f'/home/moriki/PoseEstimation/mmpose/tools/json_file/mmpose_data_{today_date}.json'
+    
     concat_json_files(json_files, output_file)
+    print(f"データを {output_file} に保存しました")
 
 
 '''
