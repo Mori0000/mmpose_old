@@ -238,7 +238,7 @@ class CustomRunner(Runner):
         if 'outputs' in kwargs:
             logged_data['outputs'] = kwargs['outputs']
             # crop_json_path = '/home/moriki/PoseEstimation/mmpose/data/pose/CrowdPose/jsonfiles/kpt_all_gt.json'
-            crop_json_path = '/home/moriki/PoseEstimation/mmpose/data/pose/CrowdPose/jsonfiles/kpt_demo.json'
+            crop_json_path = '/home/moriki/PoseEstimation/mmpose/data/pose/CrowdPose/jsonfiles/kpt_yolo.json'
             
             with open(crop_json_path, 'r') as crop_json_file:
                 crop_json_data = json.load(crop_json_file)
